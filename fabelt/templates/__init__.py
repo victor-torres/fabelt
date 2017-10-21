@@ -1,5 +1,7 @@
-import jinja2
 import os
+
+# FIXME: no module named jinja2
+import jinja2
 
 
 __all__ = ['render']
