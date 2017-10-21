@@ -1,3 +1,9 @@
-import pip, virtualenv
+import apt
+import pip
+import virtualenv
 
-__all__ = ['pip', 'virtualenv']
+__all__ = [
+    'apt',
+    'pip',
+    'virtualenv',
+]
