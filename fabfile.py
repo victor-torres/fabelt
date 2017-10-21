@@ -18,5 +18,5 @@ def setup():
         with virtualenv.activate(env.virtualenv):
             pip.install_requirements()
             django.migrate()
-            django.createsuperuser()
-            django.collectstatic()
+            django.create_super_user()
+            django.collect_static()
