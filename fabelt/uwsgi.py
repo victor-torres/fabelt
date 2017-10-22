@@ -1,11 +1,16 @@
-from fabric.api import env, puts, run, task
+import os
 
-from fabelt import templates
+from fabric.api import env, put, run, task
+
+from fabelt import apt, templates
 
 
 __all__ = [
     'install',
-    'config'
+    'config',
+    'enable_app',
+    'disable_app',
+    'remove_app',
 ]
 
 
@@ -20,11 +25,12 @@ def get_socket():
 
 
 def get_logger(suffix=None):
-    args = dict(project=env.project)
+    args = dict(project=env.project, suffix=suffix)
     logger = '/var/log/uwsgi/app/{project}'
     if suffix:
-        logger += suffix
+        logger += '-{suffix}'
 
+    logger = logger.format(**args)
     return logger
 
 
@@ -33,9 +39,9 @@ def get_pid_file():
     return '/run/uwsgi/{project}.pid'.format(**args)
 
 
-def get_filename():
-    args = dict(project=env.project)
-    return '/etc/uwsgi/apps-available/{project}.ini'.format(**args)
+def get_file_path(status='available'):
+    args = dict(project=env.project, status=status)
+    return '/etc/uwsgi/apps-{status}/{project}.ini'.format(**args)
 
 
 @task
@@ -52,10 +58,10 @@ def config(**kwargs):
         'master': 'true',
         'processes': 4,
         'socket': get_socket(),
-        'chmod-socket': 666,
+        'chmod_socket': 666,
         'vacuum': 'true',
         'logger': get_logger('error'),
-        'req-logger': get_logger('access'),
+        'req_logger': get_logger('access'),
         'pidfile': get_pid_file(),
         'uid': 'www-data',
         'gid': 'www-data'
@@ -67,4 +73,23 @@ def config(**kwargs):
         f.write(config)
 
     file_path = get_file_path()
-    puts(tmp_file_path, file_path)
+    put(tmp_file_path, file_path)
+
+
+@task
+def enable_app():
+    available_file_path = get_file_path(status='available')
+    enabled_file_path = get_file_path(status='enabled')
+    run('ln -sf {0} {1}'.format(available_file_path, enabled_file_path))
+
+
+@task
+def disable_app():
+    enabled_file_path = get_file_path(status='enabled')
+    run('rm {0}'.format(enabled_file_path))
+
+
+@task
+def remove_app():
+    available_file_path = get_file_path(status='available')
+    run('rm {0}'.format(available_file_path))
