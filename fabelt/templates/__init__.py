@@ -1,6 +1,5 @@
 import os
 
-# FIXME: no module named jinja2
 import jinja2
 
 
