@@ -11,32 +11,8 @@ __all__ = [
     'enable_app',
     'disable_app',
     'remove_app',
+    'restart',
 ]
-
-
-def get_module():
-    args = dict(project=env.project)
-    return '{project}.wsgi:application'.format(**args)
-
-
-def get_socket():
-    args = dict(project=env.project)
-    return '/run/uwsgi/{project}.sock'.format(**args)
-
-
-def get_logger(suffix=None):
-    args = dict(project=env.project, suffix=suffix)
-    logger = '/var/log/uwsgi/app/{project}'
-    if suffix:
-        logger += '-{suffix}'
-
-    logger = logger.format(**args)
-    return logger
-
-
-def get_pid_file():
-    args = dict(project=env.project)
-    return '/run/uwsgi/{project}.pid'.format(**args)
 
 
 def get_file_path(status='available'):
@@ -47,32 +23,22 @@ def get_file_path(status='available'):
 @task
 def install():
     # TODO: support multiple systems
-    apt.install('uwsgi')
+    apt.install('uwsgi uwsgi-plugin-python')
 
 
 @task
-def config(**kwargs):
+def config():
     config = {
+        'chdir': env.project_home,
         'virtualenv': env.virtualenv,
-        'module': get_module(),
-        'master': 'true',
-        'processes': 4,
-        'socket': get_socket(),
-        'chmod_socket': 666,
-        'vacuum': 'true',
-        'logger': get_logger('error'),
-        'req_logger': get_logger('access'),
-        'pidfile': get_pid_file(),
-        'uid': 'www-data',
-        'gid': 'www-data'
+        'wsgi_file': env.wsgi_file
     }
-    config.update(kwargs)
     config = templates.render('uwsgi.ini', config)
     tmp_file_path = '/tmp/uwsgi.ini.tmp'
     with open(tmp_file_path, 'w') as f:
         f.write(config)
 
-    file_path = get_file_path()
+    file_path = get_file_path(status='available')
     put(tmp_file_path, file_path)
 
 
@@ -93,3 +59,21 @@ def disable_app():
 def remove_app():
     available_file_path = get_file_path(status='available')
     run('rm {0}'.format(available_file_path))
+
+
+@task
+def restart():
+    # TODO: support other systems
+    run('/etc/init.d/uwsgi restart')
+
+
+@task
+def start():
+    # TODO: support other systems
+    run('/etc/init.d/uwsgi start')
+
+@task
+def stop():
+    # TODO: support other systems
+    run('/etc/init.d/uwsgi stop')
+
